@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>🎲 跨設備三合一遊戲</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:linear-gradient(145deg,#1a2634,#0f1720);min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Roboto,sans-serif;padding:1rem}
+.game-container{background:rgba(30,45,60,.8);backdrop-filter:blur(14px);border-radius:2rem;padding:1.5rem;max-width:700px;width:100%;color:#eef5ff;border:1px solid rgba(255,255,255,.08);box-shadow:0 30px 45px -15px #000}
+.panel-title{font-size:1.4rem;font-weight:700;text-align:center;margin-bottom:.3rem;background:linear-gradient(135deg,#c0e0ff,#9ac8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.panel-sub{text-align:center;color:#88a4c2;margin-bottom:1rem;font-size:.85rem;border-bottom:1px dashed rgba(255,255,255,.1);padding-bottom:.7rem}
+.message-box{background:#0b141c;border-radius:1.2rem;padding:1rem;text-align:center;font-size:1.05rem;min-height:4rem;display:flex;flex-direction:column;justify-content:center;border:1px solid #2b3f52;margin-bottom:.8rem}
+.hint-text{font-size:.8rem;color:#8eaec9;margin-top:.3rem}
+.input-group{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.8rem}
+.input-wrapper{flex:1 1 150px;background:#0b141c;border-radius:2rem;padding:.1rem .1rem .1rem 1rem;border:1px solid #2c4055}
+.input-wrapper input{background:transparent;border:none;padding:.75rem 0;font-size:1rem;width:100%;color:#fff;outline:none}
+button{background:#2d4055;border:none;border-radius:2rem;padding:.7rem 1.2rem;font-weight:600;font-size:.9rem;color:#e2efff;cursor:pointer;border:1px solid #3e5a75;transition:.15s}
+button:hover:not(:disabled){background:#3e5d7c;transform:scale(1.02)}
+button:disabled{opacity:.35;cursor:not-allowed}
+.primary-btn{background:#267a5e;border-color:#359c78}
+.danger-btn{background:#7a3e4b;border-color:#a55a6b}
+.info-bar{display:flex;justify-content:space-between;background:#0d1721;border-radius:2rem;padding:.5rem 1rem;margin-top:.6rem;font-size:.8rem;border:1px solid #243546}
+.hidden{display:none!important}
+.room-box{background:#0b1620;padding:1rem;border-radius:1.2rem;border:1px solid #24394b;margin-bottom:1rem}
+.room-id{font-size:1.6rem;font-weight:700;text-align:center;letter-spacing:.2em;color:#7ec8ff;margin:.5rem 0}
+.emoji-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.8rem 0}
+.emoji-btn{padding:1rem;border-radius:1.2rem;font-weight:700;font-size:1.1rem;text-align:center;cursor:pointer;border:2px solid transparent;user-select:none;transition:.15s}
+.emoji-btn.happy{background:#2a6a4a;border-color:#4a9a6a}
+.emoji-btn.calm{background:#2a5a7a;border-color:#4a8aaa}
+.emoji-btn.sad{background:#3a4a6a;border-color:#5a7aaa}
+.emoji-btn.angry{background:#6a2a2a;border-color:#aa4a4a}
+.wheel-display{display:flex;gap:1rem;margin:1rem 0}
+.wheel-option{flex:1;padding:1.4rem;border-radius:1.2rem;font-weight:700;font-size:1.1rem;text-align:center;cursor:pointer;border:2px solid transparent}
+.wheel-option.truth{background:#1e5a7a;border-color:#3b9ac9}
+.wheel-option.dare{background:#6a3a5a;border-color:#b85d9a}
+.wheel-option.active{box-shadow:0 0 0 3px #fff;transform:scale(1.03)}
+.wheel-result{font-size:1.2rem;font-weight:700;margin:.8rem 0;min-height:3rem;background:#0b141c;padding:.8rem;border-radius:1.2rem;display:flex;align-items:center;justify-content:center;text-align:center}
+</style>
+</head>
+<body>
+<div class="game-container">
+
+<!-- ===== 大廳 ===== -->
+<div id="lobbyPanel" class="game-panel active">
+  <div class="panel-title">🎮 跨設備連線大廳</div>
+  <div class="panel-sub">兩台設備進入同一房間即可對戰</div>
+  <div class="room-box">
+    <div style="font-size:.85rem;color:#aac3dd">你的名字</div>
+    <div class="input-wrapper" style="margin-top:.4rem"><input id="playerName" placeholder="輸入名字" value="玩家"></div>
+    <div style="margin-top:.7rem;font-size:.85rem;color:#aac3dd">選擇你的角色（先進入者）</div>
+    <select id="hostRole" style="width:100%;margin-top:.4rem;padding:.6rem;border-radius:1.5rem;background:#0b141c;color:#fff;border:1px solid #2c4055">
+      <option value="setter">出題方</option>
+      <option value="guesser">猜測方</option>
+    </select>
+  </div>
+  <button class="primary-btn" id="createRoomBtn" style="width:100%">🏠 建立房間（先進入者）</button>
+  <div style="text-align:center;color:#667f99;margin:.7rem 0;font-size:.8rem">— 或 —</div>
+  <div class="input-group">
+    <div class="input-wrapper"><input id="joinRoomId" placeholder="輸入房間號" maxlength="5"></div>
+    <button id="joinRoomBtn">加入房間</button>
+  </div>
+  <div id="lobbyMsg" class="hint-text" style="text-align:center;margin-top:.6rem"></div>
+</div>
+
+<!-- ===== 房間等待 ===== -->
+<div id="roomPanel" class="game-panel">
+  <div class="panel-title">🚪 房間已建立</div>
+  <div class="panel-sub">把房間號給另一台設備</div>
+  <div class="room-id" id="roomIdDisplay">-----</div>
+  <div class="message-box"><span id="roomStatus">等待對手加入...</span></div>
+  <div class="hint-text" style="text-align:center">你的角色：<span id="myRoleDisplay">--</span></div>
+</div>
+
+<!-- ===== 遊戲進行 ===== -->
+<div id="gamePanel" class="game-panel">
+  <div class="panel-title" id="gameTitle">🎲 遊戲進行中</div>
+  <div class="panel-sub" id="gameSub">等待出題方設定...</div>
+  <div class="message-box"><span id="gMsg">等待...</span><span class="hint-text" id="gHint"></span></div>
+
+  <!-- 出題設置（setter 可見） -->
+  <div id="setterSetup" class="hidden">
+    <div style="display:flex;gap:.5rem;margin-bottom:.6rem">
+      <select id="qType" style="flex:1;padding:.6rem;border-radius:1.5rem;background:#0b141c;color:#fff;border:1px solid #2c4055">
+        <option value="number">數字 (1-100)</option>
+        <option value="riddle">燈謎</option>
+        <option value="emotion">情緒謎語</option>
+      </select>
+    </div>
+    <div id="numRow" class="input-group"><div class="input-wrapper"><input type="number" id="secretNum" placeholder="秘密數字 1-100"></div></div>
+    <div id="riddleRow" class="input-group hidden"><div class="input-wrapper"><input id="riddleQ" placeholder="謎面"></div><div class="input-wrapper"><input id="riddleA" placeholder="謎底"></div></div>
+    <div id="emotionRow" class="hidden">
+      <div class="input-wrapper" style="margin-bottom:.5rem"><input id="emotionQ" placeholder="三句話謎語，例如：太陽出來了，鳥兒在叫，我微笑著"></div>
+      <select id="emotionA" style="width:100%;padding:.6rem;border-radius:1.5rem;background:#0b141c;color:#fff;border:1px solid #2c4055">
+        <option value="happy">開心 😊</option><option value="calm">平靜 😌</option><option value="sad">悲傷 😢</option><option value="angry">憤怒 😠</option>
+      </select>
+    </div>
+    <button class="primary-btn" id="startGameBtn" style="width:100%;margin-top:.5rem">開始遊戲（送出題目）</button>
+  </div>
+
+  <!-- 猜測區（guesser 可見） -->
+  <div id="guesserArea" class="hidden">
+    <div id="gInputGroup" class="input-group"><div class="input-wrapper"><input id="gInput" placeholder="輸入猜測"></div><button class="primary-btn" id="gBtn">↵ 猜</button></div>
+    <div id="gEmotionChoices" class="emoji-grid hidden">
+      <div class="emoji-btn happy" data-e="happy">😊 開心</div>
+      <div class="emoji-btn calm" data-e="calm">😌 平靜</div>
+      <div class="emoji-btn sad" data-e="sad">😢 悲傷</div>
+      <div class="emoji-btn angry" data-e="angry">😠 憤怒</div>
+    </div>
+    <div class="info-bar"><span id="gAttempt">第 1 / 5 次</span><span id="gHistory">📋 —</span></div>
+  </div>
+</div>
+
+<!-- ===== 轉盤 ===== -->
+<div id="wheelPanel" class="game-panel">
+  <div class="panel-title">🎡 真心話 · 大冒險</div>
+  <div class="panel-sub">必須點擊轉盤按鈕</div>
+  <div class="wheel-display">
+    <div class="wheel-option truth" id="wTruth">💬 真心話</div>
+    <div class="wheel-option dare" id="wDare">🔥 大冒險</div>
+  </div>
+  <div class="wheel-result" id="wResult">點擊下方按鈕轉動轉盤</div>
+  <button class="primary-btn" id="spinBtn" style="width:100%;padding:.9rem">🎲 轉動轉盤</button>
+</div>
+
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+let ws=null, myRole=null, roomId=null, playerName='';
+let mType='number', mAttempts=0, mOver=false, mHistory=[];
+
+// ---------- WebSocket 連線 ----------
+function connect(){
+  const proto = location.protocol==='https:'?'wss':'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+  ws.onmessage = e=>{
+    const msg = JSON.parse(e.data);
+    handleServerMsg(msg);
+  };
+  ws.onclose = ()=>{ $('lobbyMsg').textContent='連線已斷開，請重新整理'; };
+}
+connect();
+
+function send(msg){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(msg)); }
+
+function showPanel(id){ document.querySelectorAll('.game-panel').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
+
+// ---------- 大廳 ----------
+$('createRoomBtn').onclick = ()=>{
+  playerName = $('playerName').value.trim()||'玩家';
+  myRole = $('hostRole').value;
+  send({type:'create', role:myRole, name:playerName});
+};
+
+$('joinRoomBtn').onclick = ()=>{
+  const rid = $('joinRoomId').value.trim().toUpperCase();
+  if(!rid){ $('lobbyMsg').textContent='請輸入房間號'; return; }
+  playerName = $('playerName').value.trim()||'玩家';
+  send({type:'join', roomId:rid, name:playerName});
+};
+
+// ---------- 伺服器訊息處理 ----------
+function handleServerMsg(msg){
+  switch(msg.type){
+    case 'roomCreated':
+      roomId = msg.roomId; myRole = msg.role;
+      $('roomIdDisplay').textContent = roomId;
+      $('myRoleDisplay').textContent = myRole==='setter'?'出題方':'猜測方';
+      $('roomStatus').textContent = '等待對手加入...';
+      showPanel('roomPanel');
+      break;
+    case 'roomJoined':
+      roomId = msg.roomId; myRole = msg.role;
+      $('roomIdDisplay').textContent = roomId;
+      $('myRoleDisplay').textContent = myRole==='setter'?'出題方':'猜測方';
+      $('roomStatus').textContent = '已加入，等待對手...';
+      showPanel('roomPanel');
+      break;
+    case 'opponentJoined':
+      $('roomStatus').textContent = '對手已加入！準備開始';
+      startGameView();
+      break;
+    case 'error':
+      $('lobbyMsg').textContent = msg.msg;
+      break;
+    case 'opponentLeft':
+      alert('對手已離開房間');
+      location.reload();
+      break;
+    // 出題方送出的題目 → 猜測方接收
+    case 'gameStart':
+      mType = msg.qType; mAttempts=0; mOver=false; mHistory=[];
+      startGameView(msg);
+      break;
+    // 猜測方的猜測 → 出題方收到，回傳結果
+    case 'guess':
+      handleOpponentGuess(msg);
+      break;
+    // 出題方回傳的結果 → 猜測方收到
+    case 'guessResult':
+      handleGuessResult(msg);
+      break;
+    // 任一方觸發轉盤 → 雙方同步顯示
+    case 'wheel':
+      showPanel('wheelPanel');
+      break;
+  }
+}
+
+// ---------- 遊戲視圖 ----------
+function startGameView(data){
+  showPanel('gamePanel');
+  if(myRole==='setter'){
+    $('setterSetup').classList.remove('hidden');
+    $('guesserArea').classList.add('hidden');
+    $('gMsg').textContent = '請設定題目';
+    $('gHint').textContent = '對手已就位';
+  }else{
+    $('setterSetup').classList.add('hidden');
+    $('guesserArea').classList.remove('hidden');
+    $('gMsg').textContent = '等待出題方設定...';
+    $('gHint').textContent = '';
+    if(data){
+      mType = data.qType;
+      $('gMsg').textContent = data.qType==='number'?'請猜 1–100 的數字':`謎面：${data.question}`;
+      if(mType==='emotion'){ $('gInputGroup').classList.add('hidden'); $('gEmotionChoices').classList.remove('hidden'); }
+      else{ $('gInputGroup').classList.remove('hidden'); $('gEmotionChoices').classList.add('hidden'); }
+    }
+  }
+}
+
+// 出題方：開始遊戲
+$('qType').onchange = ()=>{
+  const t = $('qType').value;
+  $('numRow').classList.toggle('hidden', t!=='number');
+  $('riddleRow').classList.toggle('hidden', t!=='riddle');
+  $('emotionRow').classList.toggle('hidden', t!=='emotion');
+};
+
+$('startGameBtn').onclick = ()=>{
+  const t = $('qType').value;
+  let payload = {type:'gameStart', qType:t};
+  if(t==='number'){
+    const n = Number($('secretNum').value);
+    if(!Number.isInteger(n)||n<1||n>100){ alert('請輸入 1–100 的整數'); return; }
+    payload.secret = n; payload.question = '猜一個 1–100 的數字';
+  }else if(t==='riddle'){
+    const q=$('riddleQ').value.trim(), a=$('riddleA').value.trim();
+    if(!q||!a){ alert('請輸入謎面和謎底'); return; }
+    payload.question=q; payload.secret=a;
+  }else{
+    const q=$('emotionQ').value.trim(), a=$('emotionA').value;
+    if(!q){ alert('請輸入三句話謎語'); return; }
+    payload.question=q; payload.secret=a;
+  }
+  send(payload);
+  $('setterSetup').classList.add('hidden');
+  $('gMsg').textContent = '已出題，等待對手猜測...';
+};
+
+// 猜測方送出猜測
+function sendGuess(val){
+  if(mOver) return;
+  if(mAttempts>=5){ send({type:'wheel'}); return; }
+  mAttempts++;
+  mHistory.push(val);
+  send({type:'guess', value:val, attempts:mAttempts});
+  updateGuessUI();
+  if(mAttempts>=5) mOver=true;
+}
+
+$('gBtn').onclick = ()=>{
+  const v = $('gInput').value.trim();
+  if(!v){ return; }
+  sendGuess(v);
+  $('gInput').value='';
+};
+
+$('gInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); $('gBtn').click(); }
+});
+
+document.querySelectorAll('#gEmotionChoices .emoji-btn').forEach(btn=>{
+  btn.onclick = ()=>{ sendGuess(btn.dataset.e); };
+});
+
+function updateGuessUI(){
+  $('gAttempt').textContent = mOver?'已結束':`第 ${mAttempts+1} / 5 次`;
+  $('gHistory').textContent = mHistory.length ? '📋 '+mHistory.slice(-6).join(', ') : '📋 —';
+}
+
+// 出題方：處理對手猜測
+function handleOpponentGuess(msg){
+  const val = msg.value;
+  // 出題方需要知道秘密答案，這裡用一個變數存儲
+  // 注意：實際遊戲中 secret 存在出題方本地
+  // 由於是轉發架構，簡化為：出題方在本地比對
+  // 我們用 window._secret 存儲出題方設定的答案
+  const secret = window._gameSecret;
+  let correct = false;
+  if(mType==='number'){
+    correct = Number(val)===Number(secret);
+  }else{
+    correct = String(val).trim().toLowerCase()===String(secret).trim().toLowerCase();
+  }
+  const result = {type:'guessResult', correct, attempts:msg.attempts};
+  if(!correct && mType==='number'){
+    const n=Number(val), s=Number(secret);
+    result.hint = n<s?'太小了':'太大了';
+    result.diff = Math.abs(n-s);
+  }
+  send(result);
+  if(correct){ mOver=true; $('gMsg').textContent='對手猜對了！'; }
+  else if(msg.attempts>=5){ mOver=true; $('gMsg').textContent='對手機會用盡'; send({type:'wheel'}); }
+}
+
+// 猜測方：處理結果
+function handleGuessResult(msg){
+  if(msg.correct){
+    mOver=true;
+    $('gMsg').textContent='🎉 恭喜猜對！';
+    $('gHint').textContent=`用了 ${msg.attempts} 次`;
+  }else{
+    let hint = msg.hint||'不對哦';
+    if(msg.diff!==undefined){
+      hint += msg.diff<=5?' 🔥 非常接近':(msg.diff<=15?' 🌡️ 有點接近':' ❄️ 還很遠');
+    }
+    $('gMsg').textContent = hint;
+    $('gHint').textContent = `剩 ${5-msg.attempts} 次機會`;
+  }
+  if(msg.attempts>=5 && !msg.correct){
+    mOver=true;
+    send({type:'wheel'});
+  }
+}
+
+// 記住出題方設定的答案
+const origStart = $('startGameBtn').onclick;
+$('startGameBtn').onclick = function(){
+  const t=$('qType').value;
+  if(t==='number') window._gameSecret = $('secretNum').value;
+  else if(t==='riddle') window._gameSecret = $('riddleA').value.trim();
+  else window._gameSecret = $('emotionA').value;
+  origStart.call(this);
+};
+
+// ---------- 轉盤 ----------
+$('spinBtn').onclick = ()=>{
+  const isTruth = Math.random()<0.5;
+  $('wTruth').classList.toggle('active', isTruth);
+  $('wDare').classList.toggle('active', !isTruth);
+  $('wResult').textContent = isTruth?'💬 真心話！說出一個秘密吧':'🔥 大冒險！完成一個挑戰';
+  send({type:'wheelSpun', result:isTruth?'truth':'dare'});
+};
+
+// 收到對方轉盤結果
+// 在 handleServerMsg 中加入 wheelSpun 處理
+const origHandle = handleServerMsg;
+handleServerMsg = function(msg){
+  if(msg.type==='wheelSpun'){
+    $('wTruth').classList.toggle('active', msg.result==='truth');
+    $('wDare').classList.toggle('active', msg.result==='dare');
+    $('wResult').textContent = msg.result==='truth'?'💬 真心話！':'🔥 大冒險！';
+    return;
+  }
+  origHandle(msg);
+};
+
+})();
+</script>
+</body>
+</html>
